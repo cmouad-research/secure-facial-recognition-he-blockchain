@@ -19,13 +19,45 @@ from he_ckks import make_context, encrypt_vector, decrypt_vector, ciphertext_byt
 from ipfs_client import add_bytes, cat_bytes, pin_add
 
 _WARMUP_COUNT = 3
+_PROCESS_START_NS = time.perf_counter_ns()
+_FIRST_EMBED_DONE_NS: int | None = None
 
 
 def _ms(start_ns: int, end_ns: int) -> float:
     return (end_ns - start_ns) / 1_000_000.0
 
 
+def _record_first_embedding_done() -> None:
+    global _FIRST_EMBED_DONE_NS
+    if _FIRST_EMBED_DONE_NS is None:
+        _FIRST_EMBED_DONE_NS = time.perf_counter_ns()
+
+
+def _embedding_warmup(warmup_count: int) -> np.ndarray | None:
+    emb = None
+    for _ in range(warmup_count):
+        emb = get_embedding(0)
+        _record_first_embedding_done()
+    return emb
+
+
+def _cold_start_ms() -> float | None:
+    if _FIRST_EMBED_DONE_NS is None:
+        return None
+    return _ms(_PROCESS_START_NS, _FIRST_EMBED_DONE_NS)
+
+
 def _smoke() -> int:
+    emb = _embedding_warmup(_WARMUP_COUNT)
+    if emb is None:
+        emb = get_embedding(0)
+        _record_first_embedding_done()
+    ctx = make_context()
+    ct = encrypt_vector(ctx, emb)
+    _ = decrypt_vector(ctx, ct)
+    warm_cid = add_bytes(b"warmup")
+    _ = cat_bytes(warm_cid)
+
     t_start = time.perf_counter_ns()
 
     t0 = time.perf_counter_ns()
@@ -65,6 +97,18 @@ def _smoke() -> int:
 
     t_end = time.perf_counter_ns()
 
+    measured_sum_ms = sum(
+        [
+            _ms(t0, t1),
+            _ms(t2, t3),
+            _ms(t4, t5),
+            _ms(t6, t7),
+            _ms(t8, t9),
+            _ms(t10, t11),
+            _ms(t12, t13),
+        ]
+    )
+
     print(f"embed_ms={_ms(t0, t1):.3f}")
     print(f"encrypt_ms={_ms(t2, t3):.3f}")
     print(f"serialize_ms={_ms(t4, t5):.3f}")
@@ -72,6 +116,7 @@ def _smoke() -> int:
     print(f"ipfs_cat_ms={_ms(t8, t9):.3f}")
     print(f"deserialize_ms={_ms(t10, t11):.3f}")
     print(f"decrypt_ms={_ms(t12, t13):.3f}")
+    print(f"measured_sum_ms={measured_sum_ms:.3f}")
     print(f"end_to_end_ms={_ms(t_start, t_end):.3f}")
     return 0
 
@@ -104,10 +149,16 @@ def _auth_bench(
     meta_path = os.path.join("results", "raw", f"auth_{run_id}.json")
 
     # Warmup to avoid cold-start effects in embed_ms.
-    for i in range(_WARMUP_COUNT):
-        _ = get_embedding(i)
+    emb = _embedding_warmup(_WARMUP_COUNT)
+    if emb is None:
+        emb = get_embedding(0)
+        _record_first_embedding_done()
 
     ctx = make_context()
+    ct = encrypt_vector(ctx, emb)
+    _ = decrypt_vector(ctx, ct)
+    warm_cid = add_bytes(b"warmup")
+    _ = cat_bytes(warm_cid)
 
     template_idx, query_idx = _orl_split()
 
@@ -127,6 +178,7 @@ def _auth_bench(
     # Metadata
     meta = {
         "run_id": run_id,
+        "cold_start_ms": _cold_start_ms(),
         "ckks": {
             "poly_modulus_degree": 8192,
             "coeff_mod_bit_sizes": [60, 40, 40, 60],
