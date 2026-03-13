@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.ipynb_checkpoints
+
+results/raw/*
+results/processed/*
+
+control-plane/node_modules/
+control-plane/artifacts/
+control-plane/cache/
+
+*.log

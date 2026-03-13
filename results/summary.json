@@ -1,0 +1,438 @@
+{
+  "auth_ctct_pinned_thr1_poly8192_tau030.csv": {
+    "file": "auth_ctct_pinned_thr1_poly8192_tau030.csv",
+    "latency": {
+      "embed_ms": {
+        "mean": 203.04955555555554,
+        "median": 198.447,
+        "p95": 252.92205
+      },
+      "ipfs_cat_ms": {
+        "mean": 4.775543055555556,
+        "median": 4.490500000000001,
+        "p95": 6.602249999999999
+      },
+      "he_eval_ms": {
+        "mean": 34.496583333333334,
+        "median": 32.6025,
+        "p95": 45.8002
+      },
+      "decrypt_ms": {
+        "mean": 1.2075958333333334,
+        "median": 1.1135000000000002,
+        "p95": 1.6872999999999998
+      },
+      "end_to_end_ms": {
+        "mean": 40.54013055555556,
+        "median": 38.477000000000004,
+        "p95": 53.31789999999999
+      },
+      "chain_request_ms": null,
+      "chain_decide_ms": null,
+      "chain_total_ms": null
+    },
+    "accuracy": {
+      "far": 0.03888888888888889,
+      "frr": 0.022222222222222223,
+      "accuracy": 0.9694444444444444,
+      "genuine_total": 360,
+      "impostor_total": 360
+    }
+  },
+  "auth_ctpt_pinned_thr1_poly8192_tau030.csv": {
+    "file": "auth_ctpt_pinned_thr1_poly8192_tau030.csv",
+    "latency": {
+      "embed_ms": {
+        "mean": 205.96387222222225,
+        "median": 200.1225,
+        "p95": 259.82419999999996
+      },
+      "ipfs_cat_ms": {
+        "mean": 4.743145833333333,
+        "median": 4.407500000000001,
+        "p95": 6.4394
+      },
+      "he_eval_ms": {
+        "mean": 25.273566666666667,
+        "median": 23.659,
+        "p95": 35.4203
+      },
+      "decrypt_ms": {
+        "mean": 1.1970972222222223,
+        "median": 1.093,
+        "p95": 1.7711999999999997
+      },
+      "end_to_end_ms": {
+        "mean": 31.276069444444445,
+        "median": 29.368000000000002,
+        "p95": 42.6259
+      },
+      "chain_request_ms": null,
+      "chain_decide_ms": null,
+      "chain_total_ms": null
+    },
+    "accuracy": {
+      "far": 0.03888888888888889,
+      "frr": 0.022222222222222223,
+      "accuracy": 0.9694444444444444,
+      "genuine_total": 360,
+      "impostor_total": 360
+    }
+  },
+  "auth_ctpt_pinned_thr1_poly8192_tau030_v2.csv": {
+    "file": "auth_ctpt_pinned_thr1_poly8192_tau030_v2.csv",
+    "latency": {
+      "embed_ms": {
+        "mean": 295.39500000000004,
+        "median": 281.837,
+        "p95": 405.115
+      },
+      "ipfs_cat_ms": {
+        "mean": 8.506722222222223,
+        "median": 7.398,
+        "p95": 14.712449999999993
+      },
+      "he_eval_ms": {
+        "mean": 30.11327777777777,
+        "median": 27.8455,
+        "p95": 39.62999999999999
+      },
+      "decrypt_ms": {
+        "mean": 1.4345555555555556,
+        "median": 1.3325,
+        "p95": 1.8947999999999996
+      },
+      "end_to_end_ms": {
+        "mean": 414.347,
+        "median": 399.3845,
+        "p95": 481.17225
+      },
+      "chain_request_ms": {
+        "mean": 50.37277777777777,
+        "median": 48.067,
+        "p95": 62.683049999999994
+      },
+      "chain_decide_ms": {
+        "mean": 48.31194444444444,
+        "median": 48.2605,
+        "p95": 59.99859999999999
+      },
+      "chain_total_ms": {
+        "mean": 98.68450000000001,
+        "median": 97.7815,
+        "p95": 120.46294999999999
+      }
+    },
+    "accuracy": {
+      "far": 0.0,
+      "frr": 0.0,
+      "accuracy": 1.0,
+      "genuine_total": 9,
+      "impostor_total": 9
+    }
+  },
+  "auth_ctpt_pinned_thr1_poly8192_tau030_v3.csv": {
+    "file": "auth_ctpt_pinned_thr1_poly8192_tau030_v3.csv",
+    "latency": {
+      "embed_ms": {
+        "mean": 277.7201611111111,
+        "median": 272.015,
+        "p95": 353.1049
+      },
+      "ipfs_cat_ms": {
+        "mean": 9.037795833333332,
+        "median": 7.9875,
+        "p95": 16.3838
+      },
+      "he_eval_ms": {
+        "mean": 28.761202777777775,
+        "median": 26.451,
+        "p95": 41.80469999999998
+      },
+      "decrypt_ms": {
+        "mean": 1.3138222222222222,
+        "median": 1.164,
+        "p95": 1.96525
+      },
+      "end_to_end_ms": {
+        "mean": 404.9218805555557,
+        "median": 399.3395,
+        "p95": 483.58164999999997
+      },
+      "chain_request_ms": {
+        "mean": 39.578747222222226,
+        "median": 37.617000000000004,
+        "p95": 59.75399999999999
+      },
+      "chain_decide_ms": {
+        "mean": 37.85086111111111,
+        "median": 35.582499999999996,
+        "p95": 58.08195
+      },
+      "chain_total_ms": {
+        "mean": 77.42959166666667,
+        "median": 73.5865,
+        "p95": 115.59274999999998
+      }
+    },
+    "accuracy": {
+      "far": 0.03888888888888889,
+      "frr": 0.022222222222222223,
+      "accuracy": 0.9694444444444444,
+      "genuine_total": 360,
+      "impostor_total": 360
+    }
+  },
+  "auth_ctpt_pinned_thr1_poly8192_tau030_v4.csv": {
+    "file": "auth_ctpt_pinned_thr1_poly8192_tau030_v4.csv",
+    "latency": {
+      "embed_ms": {
+        "mean": 275.20601666666664,
+        "median": 265.93899999999996,
+        "p95": 358.2505
+      },
+      "ipfs_cat_ms": {
+        "mean": 8.549488888888888,
+        "median": 7.5205,
+        "p95": 15.885849999999984
+      },
+      "he_eval_ms": {
+        "mean": 28.387336111111114,
+        "median": 26.414,
+        "p95": 41.39705
+      },
+      "decrypt_ms": {
+        "mean": 1.2909111111111111,
+        "median": 1.155,
+        "p95": 1.9653999999999998
+      },
+      "end_to_end_ms": {
+        "mean": 395.69982916666663,
+        "median": 388.82349999999997,
+        "p95": 471.0972
+      },
+      "chain_request_ms": {
+        "mean": 37.411993055555556,
+        "median": 35.11,
+        "p95": 56.8824
+      },
+      "chain_decide_ms": {
+        "mean": 34.96292777777777,
+        "median": 32.3375,
+        "p95": 55.27344999999999
+      },
+      "chain_total_ms": {
+        "mean": 72.37489722222222,
+        "median": 68.098,
+        "p95": 104.7052
+      }
+    },
+    "accuracy": {
+      "far": 0.03888888888888889,
+      "frr": 0.022222222222222223,
+      "accuracy": 0.9694444444444444,
+      "genuine_total": 360,
+      "impostor_total": 360
+    }
+  },
+  "auth_ctpt_pinned_thr4_poly8192_tau030.csv": {
+    "file": "auth_ctpt_pinned_thr4_poly8192_tau030.csv",
+    "latency": {
+      "embed_ms": {
+        "mean": 193.72790555555557,
+        "median": 193.514,
+        "p95": 228.17619999999988
+      },
+      "ipfs_cat_ms": {
+        "mean": 4.651433333333333,
+        "median": 4.314,
+        "p95": 6.02745
+      },
+      "he_eval_ms": {
+        "mean": 24.334756944444447,
+        "median": 23.2255,
+        "p95": 32.5418
+      },
+      "decrypt_ms": {
+        "mean": 1.156365277777778,
+        "median": 1.073,
+        "p95": 1.5906499999999995
+      },
+      "end_to_end_ms": {
+        "mean": 30.20099583333333,
+        "median": 28.8155,
+        "p95": 40.15599999999999
+      },
+      "chain_request_ms": null,
+      "chain_decide_ms": null,
+      "chain_total_ms": null
+    },
+    "accuracy": {
+      "far": 0.03888888888888889,
+      "frr": 0.022222222222222223,
+      "accuracy": 0.9694444444444444,
+      "genuine_total": 360,
+      "impostor_total": 360
+    }
+  },
+  "auth_ctpt_pinned_thr8_poly8192_tau030.csv": {
+    "file": "auth_ctpt_pinned_thr8_poly8192_tau030.csv",
+    "latency": {
+      "embed_ms": {
+        "mean": 199.24731111111112,
+        "median": 196.8375,
+        "p95": 234.3672999999999
+      },
+      "ipfs_cat_ms": {
+        "mean": 4.311184722222222,
+        "median": 4.039,
+        "p95": 5.465749999999997
+      },
+      "he_eval_ms": {
+        "mean": 24.144918055555557,
+        "median": 23.174,
+        "p95": 32.03979999999999
+      },
+      "decrypt_ms": {
+        "mean": 1.1342055555555555,
+        "median": 1.0645,
+        "p95": 1.6014499999999996
+      },
+      "end_to_end_ms": {
+        "mean": 29.643272222222222,
+        "median": 28.482,
+        "p95": 38.768399999999986
+      },
+      "chain_request_ms": null,
+      "chain_decide_ms": null,
+      "chain_total_ms": null
+    },
+    "accuracy": {
+      "far": 0.03888888888888889,
+      "frr": 0.022222222222222223,
+      "accuracy": 0.9694444444444444,
+      "genuine_total": 360,
+      "impostor_total": 360
+    }
+  },
+  "auth_ctpt_unpinned_thr1_poly8192_tau030.csv": {
+    "file": "auth_ctpt_unpinned_thr1_poly8192_tau030.csv",
+    "latency": {
+      "embed_ms": {
+        "mean": 203.64294166666667,
+        "median": 201.676,
+        "p95": 249.04264999999998
+      },
+      "ipfs_cat_ms": {
+        "mean": 4.829448611111111,
+        "median": 4.4945,
+        "p95": 6.77145
+      },
+      "he_eval_ms": {
+        "mean": 25.335725000000004,
+        "median": 23.651,
+        "p95": 35.3331
+      },
+      "decrypt_ms": {
+        "mean": 1.1994000000000002,
+        "median": 1.1,
+        "p95": 1.6980499999999998
+      },
+      "end_to_end_ms": {
+        "mean": 31.425752777777774,
+        "median": 29.5045,
+        "p95": 43.1399
+      },
+      "chain_request_ms": null,
+      "chain_decide_ms": null,
+      "chain_total_ms": null
+    },
+    "accuracy": {
+      "far": 0.03888888888888889,
+      "frr": 0.022222222222222223,
+      "accuracy": 0.9694444444444444,
+      "genuine_total": 360,
+      "impostor_total": 360
+    }
+  },
+  "auth_ctpt_unpinned_thr1_poly8192_tau030_v2.csv": {
+    "file": "auth_ctpt_unpinned_thr1_poly8192_tau030_v2.csv",
+    "latency": {
+      "embed_ms": {
+        "mean": 246.683275,
+        "median": 241.012,
+        "p95": 313.65984999999984
+      },
+      "ipfs_cat_ms": {
+        "mean": 7.488097222222223,
+        "median": 6.6795,
+        "p95": 13.3137
+      },
+      "he_eval_ms": {
+        "mean": 26.760308333333338,
+        "median": 25.0,
+        "p95": 38.168099999999995
+      },
+      "decrypt_ms": {
+        "mean": 1.2908013888888887,
+        "median": 1.1505,
+        "p95": 1.9677499999999994
+      },
+      "end_to_end_ms": {
+        "mean": 35.60335833333333,
+        "median": 33.67,
+        "p95": 49.37924999999998
+      },
+      "chain_request_ms": null,
+      "chain_decide_ms": null,
+      "chain_total_ms": null
+    },
+    "accuracy": {
+      "far": 0.03888888888888889,
+      "frr": 0.022222222222222223,
+      "accuracy": 0.9694444444444444,
+      "genuine_total": 360,
+      "impostor_total": 360
+    }
+  },
+  "auth_ctpt_unpinned_thr1_poly8192_tau030_v3.csv": {
+    "file": "auth_ctpt_unpinned_thr1_poly8192_tau030_v3.csv",
+    "latency": {
+      "embed_ms": {
+        "mean": 265.35156111111115,
+        "median": 258.449,
+        "p95": 339.5946999999996
+      },
+      "ipfs_cat_ms": {
+        "mean": 8.3843875,
+        "median": 7.253,
+        "p95": 15.342599999999997
+      },
+      "he_eval_ms": {
+        "mean": 29.287794444444444,
+        "median": 27.237499999999997,
+        "p95": 42.36559999999999
+      },
+      "decrypt_ms": {
+        "mean": 1.34625,
+        "median": 1.1985000000000001,
+        "p95": 2.03115
+      },
+      "end_to_end_ms": {
+        "mean": 39.084497222222225,
+        "median": 37.1315,
+        "p95": 56.30285
+      },
+      "chain_request_ms": null,
+      "chain_decide_ms": null,
+      "chain_total_ms": null
+    },
+    "accuracy": {
+      "far": 0.03888888888888889,
+      "frr": 0.022222222222222223,
+      "accuracy": 0.9694444444444444,
+      "genuine_total": 360,
+      "impostor_total": 360
+    }
+  }
+}

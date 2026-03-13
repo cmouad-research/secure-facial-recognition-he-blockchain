@@ -8,15 +8,25 @@ import json
 import os
 import random
 import time
+from pathlib import Path
 from typing import Dict, List, Tuple
 
 import numpy as np
 import tenseal as ts
 from sklearn.datasets import fetch_olivetti_faces
+from web3 import Web3
 
-from embeddings import get_embedding
-from he_ckks import make_context, encrypt_vector, decrypt_vector, ciphertext_bytes
-from ipfs_client import add_bytes, cat_bytes, pin_add
+from src.chain_client import ChainClient
+from src.chain_utils import cid_to_bytes32, make_req_id, score_commit
+from src.embeddings import get_embedding
+from src.he_ckks import (
+    make_context,
+    encrypt_vector,
+    decrypt_vector,
+    ciphertext_bytes,
+    ckks_encrypt_serialize_from_embedding,
+)
+from src.ipfs_client import add_bytes, cat_bytes, pin_add
 
 _WARMUP_COUNT = 3
 _PROCESS_START_NS = time.perf_counter_ns()
@@ -132,7 +142,7 @@ def _orl_split() -> Tuple[Dict[int, int], Dict[int, List[int]]]:
         template_idx[subj] = int(idxs[0])
         query_idx[subj] = [int(i) for i in idxs[1:]]
     return template_idx, query_idx
-
+    print(f"Processing subject {subj+1}/40", flush=True)
 
 def _auth_bench(
     tau: float,
@@ -141,12 +151,29 @@ def _auth_bench(
     query_encrypted: bool,
     n_impostor_per_query: int,
 ) -> int:
-    run_id = time.strftime("%Y%m%dT%H%M%S")
+    mode = "ctct" if query_encrypted else "ctpt"
+    tau_str = f"{tau:.2f}".replace(".", "")
+    poly = 8192
+    base_name = f"auth_{mode}_{ipfs_mode}_thr{threads}_poly{poly}_tau{tau_str}"
+    csv_path = os.path.join("results", "raw", f"{base_name}.csv")
+    meta_path = os.path.join("results", "raw", f"{base_name}.json")
+    version = 1
+    while os.path.exists(csv_path) or os.path.exists(meta_path):
+        version += 1
+        suffix = f"_v{version}"
+        csv_path = os.path.join("results", "raw", f"{base_name}{suffix}.csv")
+        meta_path = os.path.join("results", "raw", f"{base_name}{suffix}.json")
+
+    run_id = Path(csv_path).stem
     rng = random.Random(0)
 
     os.makedirs("results/raw", exist_ok=True)
-    csv_path = os.path.join("results", "raw", f"auth_{run_id}.csv")
-    meta_path = os.path.join("results", "raw", f"auth_{run_id}.json")
+    
+    chain = ChainClient(
+    rpc_url="http://127.0.0.1:8545",
+    abi_path="control-plane/abi/ControlPlane.json",
+    address_path="control-plane/DEPLOYED_ADDRESS",
+    )
 
     # Warmup to avoid cold-start effects in embed_ms.
     emb = _embedding_warmup(_WARMUP_COUNT)
@@ -163,17 +190,32 @@ def _auth_bench(
     template_idx, query_idx = _orl_split()
 
     # Enrollment
+        # Enrollment
     template_cid: Dict[int, str] = {}
     template_emb: Dict[int, np.ndarray] = {}
+    template_cid_hash: Dict[int, bytes] = {}
+
     for subj in range(40):
         emb = get_embedding(template_idx[subj])
         template_emb[subj] = emb
+
         ct = encrypt_vector(ctx, emb)
         ct_bytes = ciphertext_bytes(ct)
+
         cid = add_bytes(ct_bytes)
         template_cid[subj] = cid
+
         if ipfs_mode == "pinned":
             pin_add(cid)
+
+        cid_hash = cid_to_bytes32(cid)
+        template_cid_hash[subj] = cid_hash
+
+        user_label = f"orl_s{subj+1:02d}"
+        user_id_hash = Web3.keccak(text=user_label)
+
+        # enroll on-chain
+        chain.enroll(user_id_hash, cid_hash, 1)
 
     # Metadata
     meta = {
@@ -211,6 +253,13 @@ def _auth_bench(
         "score",
         "decision",
         "tau",
+        "chain_request_ms",
+        "chain_decide_ms",
+        "chain_total_ms",
+        "req_id_hex",
+        "query_cid",
+        "query_cid_hash_hex",
+        "score_pt_hash_hex",
     ]
     if query_encrypted:
         header.insert(5, "query_encrypt_ms")
@@ -267,6 +316,52 @@ def _auth_bench(
                         return 1
 
                     decision = "accept" if score >= tau else "reject"
+                    
+                    chain_request_ms = 0.0
+                    chain_decide_ms = 0.0
+                    chain_total_ms = 0.0
+                    req_id = b""
+                    query_cid = ""
+                    query_cid_hash = b""
+                    score_pt_hash = b""
+                    
+                    # ==============================
+                    # BLOCKCHAIN CONTROL PLANE
+                    # ==============================
+                    query_bytes = ckks_encrypt_serialize_from_embedding(q)
+                    query_cid = add_bytes(query_bytes)
+                    query_cid_hash = cid_to_bytes32(query_cid)
+
+                    user_label = f"orl_s{subj+1:02d}"
+                    user_id_hash = Web3.keccak(text=user_label)
+
+                    nonce = int(time.time() * 1000) & 0xFFFFFFFF
+                    ts_now = int(time.time())
+
+                    req_id = make_req_id(
+                        user_id_hash,
+                        query_cid_hash,
+                        nonce,
+                        ts_now,
+                    )
+
+                    chain_request_ms = chain.request_auth(
+                        req_id,
+                        user_id_hash,
+                        query_cid_hash,
+                    )
+
+                    score_pt_hash = score_commit(req_id, score)
+
+                    chain_decide_ms = chain.decide(
+                        req_id,
+                        decision == "accept",
+                        score_pt_hash,
+                    )
+
+                    chain_total_ms = chain_request_ms + chain_decide_ms
+                    
+                    
                     t_end = time.perf_counter_ns()
 
                     row = {
@@ -282,12 +377,20 @@ def _auth_bench(
                         "score": f"{score:.6g}",
                         "decision": decision,
                         "tau": f"{tau:.6g}",
+                        "chain_request_ms": f"{chain_request_ms:.3f}",
+                        "chain_decide_ms": f"{chain_decide_ms:.3f}",
+                        "chain_total_ms": f"{chain_total_ms:.3f}",
+                        "req_id_hex": req_id.hex() if req_id else "",
+                        "query_cid": query_cid,
+                        "query_cid_hash_hex": query_cid_hash.hex() if query_cid_hash else "",
+                        "score_pt_hash_hex": score_pt_hash.hex() if score_pt_hash else "",
                     }
                     if query_encrypted:
                         row["query_encrypt_ms"] = f"{query_encrypt_ms:.3f}"
 
                     writer.writerow(row)
-
+    print(f"Benchmark completed: {csv_path}")
+    print(f"Metadata written: {meta_path}")
     return 0
 
 
