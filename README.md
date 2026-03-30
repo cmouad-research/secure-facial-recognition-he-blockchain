@@ -1,53 +1,165 @@
-# Privacy-Preserving Facial Authentication with Homomorphic Encryption, IPFS, and Blockchain Governance
+# Privacy-Preserving Facial Authentication using Homomorphic Encryption, IPFS, and Blockchain Governance
 
 ## Overview
-This repository contains the prototype implementation used to evaluate a privacy-preserving facial authentication framework based on:
 
-- facial embeddings with InsightFace
-- CKKS homomorphic encryption with TenSEAL
-- decentralized encrypted storage with IPFS
-- blockchain-based governance and audit logging
+This repository contains the prototype implementation and experimental framework developed for the study **"Privacy-Preserving Facial Authentication using Homomorphic Encryption and Blockchain-based Governance."**
+
+The system proposes a privacy-preserving biometric authentication architecture that combines deep facial embeddings, CKKS homomorphic encryption, IPFS decentralized storage, and blockchain smart contracts for governance and audit logging.
+
+The objective of this framework is to demonstrate that biometric authentication can be performed without exposing biometric templates or similarity scores, while still ensuring transparency, traceability, and auditability through blockchain-based governance.
+
+## System Architecture
+
+The framework follows a three-layer architecture:
+
+### 1. Biometric Processing Layer
+
+This layer is responsible for:
+
+- Facial embedding extraction using InsightFace
+- Homomorphic encryption of biometric templates
+- Encrypted similarity computation
+
+### 2. Storage Layer
+
+Encrypted biometric templates are stored in IPFS, providing decentralized and content-addressed storage. Only encrypted vectors are stored. No plaintext biometric data is exposed.
+
+### 3. Governance Layer
+
+A blockchain smart contract acts as a control plane responsible for:
+
+- Identity enrollment
+- Authentication request registration
+- Authentication decision validation
+- Audit logging
+
+The blockchain stores only metadata and cryptographic hashes, which preserves biometric privacy.
 
 ## Repository Structure
 
-- `src/` : Python source code for embedding extraction, homomorphic encryption, IPFS integration, benchmarking, and analysis
-- `control-plane/` : blockchain smart contract and deployment artifacts
-- `figures/` : architecture and workflow figures used in the paper
-- `docs/` : supplementary technical documentation
-
+```text
+fr-he-blockchain-authentication/
+├── src/
+│   ├── embeddings.py
+│   ├── he_ckks.py
+│   ├── he_context.py
+│   ├── ipfs_client.py
+│   ├── chain_client.py
+│   ├── chain_utils.py
+│   ├── chain_enroll_ipfs.py
+│   ├── chain_auth_ipfs.py
+│   ├── bench.py
+│   └── analyze.py
+│
+├── control-plane/
+│   ├── contracts/
+│   │   └── ControlPlane.sol
+│   ├── abi/
+│   │   └── ControlPlane.json
+│   └── DEPLOYED_ADDRESS
+│
+├── results/
+│   ├── raw/
+│   └── processed/
+│
+├── figures/
+├── docs/
+├── requirements.txt
+├── LICENSE
+├── CITATION.cff
+└── README.md
+```
 ## Main Components
 
-- `src/embeddings.py` : facial embedding extraction
-- `src/he_ckks.py` : CKKS encryption and encrypted similarity evaluation
-- `src/ipfs_client.py` : IPFS interaction layer
-- `src/bench.py` : benchmarking framework
-- `src/analyze.py` : result aggregation and analysis
-- `src/chain_client.py` : blockchain interaction layer
-- `control-plane/contracts/ControlPlane.sol` : governance smart contract
+### Facial Embeddings
 
-## Reproducibility
+Facial embeddings are extracted using InsightFace ArcFace, producing 512-dimensional feature vectors.
 
-### 1. Create Python environment
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-### 2. Run enrollment
-```bash
-python -m src.chain_enroll_ipfs
-```
-###3. Run authentication
-```bash
-python -m src.chain_auth_ipfs
-```
-###4. Run benchmark
-```bash
-python -m src.bench --mode auth-bench --ipfs pinned --threads 1 --tau 0.30
-```
-###5. Analyze results
-```bash
-python -m src.analyze
-```
-Notes: 
-The prototype uses software-based logical key isolation. No HSM or TEE was used in the experimental implementation.
+**File:** `src/embeddings.py`
+
+### Homomorphic Encryption
+
+Biometric templates are encrypted using the CKKS homomorphic encryption scheme implemented with TenSEAL.
+
+#### Encryption Parameters
+
+| Parameter | Value |
+|-----------|-------|
+| Scheme | CKKS |
+| Polynomial modulus degree | 8192 |
+| Coefficient modulus | [60, 40, 40, 60] |
+| Global scale | 2^40 |
+| Embedding dimension | 512 |
+
+**Relevant files:**
+
+- `src/he_ckks.py`
+- `src/he_context.py`
+
+### Decentralized Storage (IPFS)
+
+Encrypted biometric templates are stored in IPFS. The blockchain stores only the hash of the corresponding IPFS CID.
+
+**File:** `src/ipfs_client.py`
+
+### Blockchain Governance Layer
+
+The control plane is implemented using a Solidity smart contract.
+
+Its main responsibilities include:
+
+- Identity registration
+- Authentication request logging
+- Authentication decision validation
+- Auditability of authentication operations
+
+**Smart contract:** `control-plane/contracts/ControlPlane.sol`
+
+**Blockchain interaction files:**
+
+- `src/chain_client.py`
+- `src/chain_utils.py`
+
+## Experimental Evaluation
+
+The repository includes a benchmarking framework used to evaluate:
+
+- Biometric authentication accuracy
+- Homomorphic computation latency
+- Decentralized storage latency
+- Blockchain governance overhead
+
+**Benchmark tool:** `src/bench.py`  
+**Result analysis:** `src/analyze.py`
+
+## Dataset
+
+Experiments were conducted using the Olivetti (ORL) face dataset:
+
+- 40 subjects
+- 10 images per subject
+
+### Evaluation Protocol
+
+- 1 image is used for enrollment
+- The remaining images are used for authentication queries
+
+This configuration generates both:
+
+- Genuine authentication attempts
+- Impostor authentication attempts
+
+## Research Objective
+
+This repository supports experimentation on secure and privacy-preserving facial authentication by combining encrypted biometric processing, decentralized storage, and blockchain-based governance.
+
+The framework is designed to demonstrate that it is possible to:
+
+- Protect biometric templates from direct exposure
+- Perform similarity computation over encrypted data
+- Store encrypted templates in a decentralized storage layer
+- Ensure accountability and auditability through blockchain governance
+
+## Citation
+
+If you use this repository in academic work, please cite the associated study using the provided `CITATION.cff` file.
