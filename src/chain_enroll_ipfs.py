@@ -20,7 +20,7 @@ admin = w3.eth.accounts[0]
 w3.eth.default_account = admin
 
 def main():
-    user_label = "orl_s01"
+    user_label = "lfw_s01"
     user_id_hash = Web3.keccak(text=user_label)
 
     emb = get_embedding(0)

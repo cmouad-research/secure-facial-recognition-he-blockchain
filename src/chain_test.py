@@ -21,7 +21,7 @@ w3.eth.wait_for_transaction_receipt(tx)
 print("Verifier set.")
 import hashlib
 
-user_id = Web3.keccak(text="orl_s01")
+user_id = Web3.keccak(text="lfw_s01")
 cid_hash = Web3.keccak(text="QmExampleCID")
 key_version = 1
 
@@ -31,4 +31,3 @@ w3.eth.wait_for_transaction_receipt(tx)
 print("Enrolled.")
 
 print("UserRec:", contract.functions.getUser(user_id).call())
-

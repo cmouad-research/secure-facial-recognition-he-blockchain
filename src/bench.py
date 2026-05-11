@@ -13,7 +13,7 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import tenseal as ts
-from sklearn.datasets import fetch_olivetti_faces
+from sklearn.datasets import fetch_lfw_people
 from web3 import Web3
 
 from src.chain_client import ChainClient
@@ -131,18 +131,39 @@ def _smoke() -> int:
     return 0
 
 
-def _orl_split() -> Tuple[Dict[int, int], Dict[int, List[int]]]:
-    dataset = fetch_olivetti_faces()
+def _lfw_split(
+    max_identities: int = 50,
+    max_genuine_queries: int = 2,
+) -> Tuple[Dict[int, int], Dict[int, List[int]], Dict[int, np.ndarray], Dict[int, List[np.ndarray]], Dict[int, str]]:
+    dataset = fetch_lfw_people(min_faces_per_person=5, resize=0.5)
     targets = np.asarray(dataset.target)
+    target_names = np.asarray(dataset.target_names)
+
+    unique_targets, counts = np.unique(targets, return_counts=True)
+    ranked_targets = sorted(
+        zip(unique_targets.tolist(), counts.tolist()),
+        key=lambda item: (-item[1], item[0]),
+    )[:max_identities]
+
     template_idx: Dict[int, int] = {}
     query_idx: Dict[int, List[int]] = {}
-    for subj in range(40):
-        idxs = np.where(targets == subj)[0]
+    template_images: Dict[int, np.ndarray] = {}
+    query_images: Dict[int, List[np.ndarray]] = {}
+    subject_names: Dict[int, str] = {}
+
+    for subj, (target_id, _) in enumerate(ranked_targets):
+        idxs = np.where(targets == target_id)[0]
         idxs = np.sort(idxs)
+        if idxs.size < 2:
+            continue
+
         template_idx[subj] = int(idxs[0])
-        query_idx[subj] = [int(i) for i in idxs[1:]]
-    return template_idx, query_idx
-    print(f"Processing subject {subj+1}/40", flush=True)
+        query_idx[subj] = [int(i) for i in idxs[1 : 1 + max_genuine_queries]]
+        template_images[subj] = np.asarray(dataset.images[idxs[0]])
+        query_images[subj] = [np.asarray(dataset.images[i]) for i in idxs[1 : 1 + max_genuine_queries]]
+        subject_names[subj] = str(target_names[target_id])
+
+    return template_idx, query_idx, template_images, query_images, subject_names
 
 def _auth_bench(
     tau: float,
@@ -187,16 +208,16 @@ def _auth_bench(
     warm_cid = add_bytes(b"warmup")
     _ = cat_bytes(warm_cid)
 
-    template_idx, query_idx = _orl_split()
+    template_idx, query_idx, template_images, query_images, subject_names = _lfw_split()
+    subject_ids = sorted(template_idx)
 
     # Enrollment
-        # Enrollment
     template_cid: Dict[int, str] = {}
     template_emb: Dict[int, np.ndarray] = {}
     template_cid_hash: Dict[int, bytes] = {}
 
-    for subj in range(40):
-        emb = get_embedding(template_idx[subj])
+    for subj in subject_ids:
+        emb = get_embedding(image=template_images[subj])
         template_emb[subj] = emb
 
         ct = encrypt_vector(ctx, emb)
@@ -211,7 +232,7 @@ def _auth_bench(
         cid_hash = cid_to_bytes32(cid)
         template_cid_hash[subj] = cid_hash
 
-        user_label = f"orl_s{subj+1:02d}"
+        user_label = f"lfw_s{subj+1:02d}"
         user_id_hash = Web3.keccak(text=user_label)
 
         # enroll on-chain
@@ -228,6 +249,14 @@ def _auth_bench(
         },
         "ipfs_mode": ipfs_mode,
         "threads": threads,
+        "dataset": {
+            "name": "lfw",
+            "min_faces_per_person": 5,
+            "resize": 0.5,
+            "max_identities": len(subject_ids),
+            "max_genuine_queries": 2,
+            "subject_name_by_subject": subject_names,
+        },
         "dataset_split": {
             "template_index_by_subject": template_idx,
             "query_indices_by_subject": query_idx,
@@ -268,10 +297,10 @@ def _auth_bench(
         writer = csv.DictWriter(f, fieldnames=header)
         writer.writeheader()
 
-        for subj in range(40):
-            for q_idx in query_idx[subj]:
+        for subj in subject_ids:
+            for query_image in query_images[subj]:
                 t_embed_start = time.perf_counter_ns()
-                q = get_embedding(q_idx)
+                q = get_embedding(image=query_image)
                 t_embed_end = time.perf_counter_ns()
                 embed_ms = _ms(t_embed_start, t_embed_end)
 
@@ -279,7 +308,7 @@ def _auth_bench(
                 for _ in range(n_impostor_per_query):
                     other = subj
                     while other == subj:
-                        other = rng.randrange(40)
+                        other = rng.choice(subject_ids)
                     comparisons.append(("impostor", other))
 
                 for case, tmpl_subj in comparisons:
@@ -332,7 +361,7 @@ def _auth_bench(
                     query_cid = add_bytes(query_bytes)
                     query_cid_hash = cid_to_bytes32(query_cid)
 
-                    user_label = f"orl_s{subj+1:02d}"
+                    user_label = f"lfw_s{subj+1:02d}"
                     user_id_hash = Web3.keccak(text=user_label)
 
                     nonce = int(time.time() * 1000) & 0xFFFFFFFF
