@@ -140,7 +140,7 @@ The dataset was loaded using:
 
 ```python
 fetch_lfw_people(min_faces_per_person=5, resize=0.5)
-
+```
 ### Evaluation Protocol
 
 - 1 image is used for enrollment
