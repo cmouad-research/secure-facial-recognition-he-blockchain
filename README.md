@@ -134,10 +134,12 @@ The repository includes a benchmarking framework used to evaluate:
 
 ## Dataset
 
-Experiments were conducted using the Olivetti (ORL) face dataset:
+Experiments were conducted using a controlled subset of the Labeled Faces in the Wild (LFW) dataset.
 
-- 40 subjects
-- 10 images per subject
+The dataset was loaded using:
+
+```python
+fetch_lfw_people(min_faces_per_person=5, resize=0.5)
 
 ### Evaluation Protocol
 
