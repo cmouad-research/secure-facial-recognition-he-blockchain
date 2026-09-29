@@ -1,33 +1,37 @@
-# A Comparative Evaluation of CT–PT and CT–CT Homomorphic Matching for Blockchain-Governed Facial Authentication
+# Privacy–Performance Trade-offs in Homomorphic Facial Authentication: CT–PT and CT–CT Matching with Blockchain Governance
 
 ## Overview
 
 This repository contains the prototype implementation and experimental framework developed for the study:
 
-**"A Comparative Evaluation of CT–PT and CT–CT Homomorphic Matching for Blockchain-Governed Facial Authentication."**
+**"Privacy–Performance Trade-offs in Homomorphic Facial Authentication: CT–PT and CT–CT Matching with Blockchain Governance."**
 
-The framework combines deep facial embeddings, CKKS homomorphic encryption, blockchain-based governance, and logical key lifecycle management to investigate privacy-preserving facial authentication.
+The framework combines deep facial embeddings, CKKS homomorphic encryption, blockchain-based governance, and logical key-management functions to investigate privacy-preserving facial authentication.
 
 The main objective of the study is to compare two homomorphic matching strategies:
 
 - **Ciphertext–Plaintext (CT–PT):** the enrolled biometric template remains encrypted while the authentication query is processed in plaintext during homomorphic evaluation.
 - **Ciphertext–Ciphertext (CT–CT):** both the enrolled template and the authentication query are encrypted before similarity computation.
 
-The blockchain acts as a governance and audit layer rather than as a biometric storage or matching component. It records enrollment metadata, authentication requests, key-version information, and final authentication decisions while biometric templates remain off-chain.
+The blockchain acts as a governance and audit layer rather than as a biometric storage or matching component. It records enrollment metadata, authentication requests, key-version information, and final authentication decisions while biometric templates and plaintext similarity scores remain off-chain.
 
 The prototype is evaluated using a filtered subset of the Labeled Faces in the Wild (LFW) dataset containing **5,985 images from 423 identities**.
+
+The study specifically investigates the additional computational cost of extending encryption from the enrolled biometric reference to the authentication query while keeping the biometric, cryptographic, and blockchain-governance workflow unchanged.
 
 ---
 
 ## System Architecture
 
-The proposed framework separates biometric processing, homomorphic matching, blockchain-based governance, and key management into distinct functional components.
+The proposed framework separates biometric processing, homomorphic matching, blockchain-based governance, and logical key management into distinct functional components.
+
+This separation makes it possible to evaluate the computational behavior of CT–PT and CT–CT matching independently from blockchain-governance overhead.
 
 ### 1. Biometric Processing
 
 Facial images are transformed into 512-dimensional embeddings using InsightFace with an ArcFace-based recognition model.
 
-The biometric processing stage is responsible for:
+The biometric-processing stage is responsible for:
 
 - face detection and alignment;
 - ArcFace embedding extraction;
@@ -35,6 +39,8 @@ The biometric processing stage is responsible for:
 - embedding normalization.
 
 No blockchain operation is involved in feature extraction.
+
+ArcFace feature extraction requires approximately **220 ms on average** in the experimental environment and is measured separately from the post-embedding authentication pipeline.
 
 ---
 
@@ -50,9 +56,11 @@ In CT–PT mode:
 
 - the enrolled reference embedding is encrypted;
 - the authentication query remains in plaintext;
-- similarity computation is performed between a ciphertext template and a plaintext query.
+- similarity computation is performed between an encrypted reference and a plaintext query.
 
-This mode reduces homomorphic computation overhead while protecting the enrolled biometric database.
+This mode reduces homomorphic-computation overhead while protecting the persistent enrolled biometric reference.
+
+However, the query embedding remains available in plaintext to the matching environment.
 
 #### CT–CT Matching
 
@@ -60,9 +68,11 @@ In CT–CT mode:
 
 - the enrolled reference embedding is encrypted;
 - the authentication query is also encrypted;
-- similarity computation is performed entirely between ciphertext operands.
+- similarity computation is performed between two ciphertext operands.
 
-This configuration provides stronger query confidentiality at the cost of additional homomorphic computation.
+This configuration provides additional query confidentiality at the cost of additional homomorphic computation.
+
+The privacy benefit of CT–CT assumes that the matching environment does not have access to the corresponding CKKS secret key.
 
 ---
 
@@ -81,14 +91,21 @@ The blockchain stores governance metadata rather than biometric templates.
 Depending on the operation, recorded information includes:
 
 - hashed user identifiers;
-- protected-template metadata;
-- key-version information;
+- protected-template hashes;
+- logical key-version information;
 - authentication request identifiers;
+- request states;
 - timestamps;
 - authentication decisions;
 - cryptographic hashes associated with decision information.
 
-**No plaintext facial embedding or biometric template is stored on-chain.**
+The blockchain does **not** store:
+
+- facial images;
+- plaintext facial embeddings;
+- encrypted biometric-template payloads;
+- plaintext query embeddings;
+- plaintext similarity scores.
 
 The blockchain therefore provides:
 
@@ -96,24 +113,75 @@ The blockchain therefore provides:
 - tamper-evident logging;
 - enrollment governance;
 - decision auditing;
-- key-version tracking.
+- identity-state management;
+- logical key-version tracking.
 
 ---
 
 ### 4. Logical Key Lifecycle Management
 
-The experimental architecture includes a logical Key Lifecycle Management (KLM) boundary responsible for CKKS key material.
+The proposed architecture defines a logical Key Lifecycle Management (KLM) boundary responsible for CKKS key handling and controlled score decryption.
 
-In the current prototype, the KLM represents a **logical trust boundary** rather than a production-grade hardware-isolated key-management system.
+The intended architecture separates public encryption and evaluation material from the secret key. However, this separation is **not physically or hardware-enforced in the current experimental prototype**.
 
-The current implementation does not claim:
+Three distinct key-related elements are involved:
+
+1. the CKKS cryptographic context;
+2. blockchain key-version metadata;
+3. the Ethereum account used to submit governance transactions.
+
+#### CKKS Cryptographic Context
+
+The CKKS context contains the cryptographic material required for encryption, homomorphic evaluation, and score decryption.
+
+In the current experimental implementation, the CKKS context is serialized with the secret key included using:
+
+```python
+save_secret_key=True
+```
+
+The benchmark variant also embeds this context in the enrollment artifact.
+
+Consequently, the resulting experimental artifacts contain sufficient cryptographic material for decryption and do **not** provide independent secret-key isolation.
+
+This design is suitable for controlled experimentation but should not be interpreted as production-grade key custody.
+
+#### Blockchain Key-Version Metadata
+
+The blockchain governance layer records a logical `keyVersion` associated with each enrollment.
+
+In the current prototype:
+
+```text
+keyVersion = 1
+```
+
+The smart contract does not generate, store, or manage CKKS secret keys.
+
+The key-version field provides a metadata foundation for future key renewal and template migration, but automated key rotation and template re-encryption are not implemented in the current prototype.
+
+#### Ethereum Transaction Account
+
+Governance transactions are submitted through the first account exposed by the local Ethereum-compatible RPC node.
+
+The local Hardhat environment provides pre-funded and unlocked development accounts.
+
+This configuration is appropriate for a controlled development environment but does not constitute production-grade blockchain account or private-key management.
+
+#### Production-Oriented Key Management
+
+The current prototype does not implement:
 
 - HSM-backed secret-key isolation;
 - Trusted Execution Environment protection;
 - distributed key custodianship;
-- automated production-grade key rotation.
+- protected external keystores;
+- production-grade transaction signing;
+- automated CKKS key rotation;
+- automated biometric-template migration;
+- hardware-backed decryption services.
 
-Key-version metadata is nevertheless represented in the blockchain governance layer, providing the architectural basis for future key rotation and revocation mechanisms.
+These capabilities remain future extensions.
 
 ---
 
@@ -147,6 +215,8 @@ secure-facial-recognition-he-blockchain/
 │   ├── chain_client.py
 │   ├── chain_utils.py
 │   ├── bench_no_ipfs.py
+│   ├── roc_eer_noipfs.py
+│   ├── plot_threshold_selection.py
 │   ├── analyze.py
 │   └── ...
 │
@@ -204,7 +274,9 @@ src/he_ckks.py
 src/he_context.py
 ```
 
-Encrypted templates remain protected during similarity evaluation.
+Encrypted enrolled templates remain protected during similarity evaluation.
+
+In CT–CT mode, the authentication query is also encrypted before matching.
 
 ---
 
@@ -225,7 +297,49 @@ src/chain_client.py
 src/chain_utils.py
 ```
 
-The blockchain is used for governance and auditability rather than biometric storage.
+The blockchain is used for governance and auditability rather than biometric storage or similarity computation.
+
+The prototype uses a local Ethereum-compatible network deployed through Hardhat.
+
+---
+
+## Authentication Workflow
+
+The authentication process is summarized as follows:
+
+```text
+Query facial image
+        ↓
+Face detection and alignment
+        ↓
+ArcFace feature extraction
+        ↓
+512-dimensional normalized embedding
+        ↓
+Matching mode selection
+        ↓
+   CT–PT or CT–CT
+        ↓
+Homomorphic similarity evaluation
+        ↓
+Encrypted scalar similarity score
+        ↓
+Logical KLM boundary
+        ↓
+Final-score decryption
+        ↓
+Threshold evaluation
+        ↓
+Accept / Reject decision
+        ↓
+Blockchain decision recording
+```
+
+In both modes, the homomorphic evaluator produces an encrypted scalar similarity score.
+
+Only the final scalar score is intended to be decrypted through the logical KLM boundary.
+
+The complete enrolled biometric embedding is not decrypted during homomorphic matching.
 
 ---
 
@@ -262,11 +376,11 @@ The remaining images of the same identity are used as authentication queries.
 Therefore:
 
 ```text
-Enrollment references: 423
-Authentication query images: 5,562
+Enrollment references:          423
+Authentication query images:  5,562
 ```
 
-The deterministic enrollment procedure ensures that the same reference image is used across all experimental configurations.
+The deterministic enrollment procedure ensures that the same reference image is used across experimental configurations.
 
 ---
 
@@ -287,26 +401,22 @@ The impostor evaluation is therefore **not exhaustive**: each query is compared 
 The resulting evaluation set contains:
 
 ```text
-Genuine trials:   5,562
-Impostor trials:  5,562
-Total trials:    11,124
+Genuine trials:    5,562
+Impostor trials:   5,562
+Total trials:     11,124
 ```
 
 Thus, genuine and impostor trials are balanced.
 
-The same predefined trial set is reused across CT–PT and CT–CT configurations to ensure a fair comparison.
+The same authentication-trial definitions are used across CT–PT and CT–CT configurations to support a controlled comparison.
 
 ---
 
-## Authentication Threshold
+## Threshold Operating-Point Analysis
 
-Authentication decisions are produced by comparing the decrypted similarity score against an operational threshold:
+Authentication decisions are produced by comparing the decrypted similarity score against an operational threshold.
 
-```text
-τ = 0.20
-```
-
-A threshold analysis was performed at:
+Four candidate operating points were evaluated:
 
 ```text
 τ = 0.15
@@ -315,7 +425,7 @@ A threshold analysis was performed at:
 τ = 0.30
 ```
 
-The measured CT–PT results were:
+The measured CT–PT single-worker results were:
 
 | Threshold | FAR | FRR | Accuracy |
 |---:|---:|---:|---:|
@@ -324,19 +434,73 @@ The measured CT–PT results were:
 | 0.25 | 0.56% | 9.80% | 94.82% |
 | 0.30 | 0.18% | 14.67% | 92.57% |
 
-Among the evaluated discrete operating points, `τ = 0.20` provides the highest authentication accuracy while substantially reducing the false acceptance rate compared with `τ = 0.15`.
-
-The ROC analysis additionally produced:
+Among the four evaluated discrete operating points:
 
 ```text
-EER:            4.25%
-EER threshold:  0.1744
-AUC:            0.9855
+τ = 0.20
 ```
 
-The EER threshold and the operational threshold serve different purposes.
+provides the highest observed authentication accuracy.
 
-The EER threshold identifies the point at which FAR and FRR are approximately balanced, whereas `τ = 0.20` is retained as the operational point to favor a lower false acceptance rate.
+The threshold was therefore retained as the common operating point for reporting CT–PT and CT–CT performance.
+
+### Important Methodological Note
+
+The threshold analysis was performed using the same experimental score distribution used for reporting biometric performance.
+
+Therefore, this procedure should be interpreted as an:
+
+```text
+operating-point analysis
+```
+
+rather than as independent threshold calibration on a held-out validation dataset.
+
+No separate calibration split was used.
+
+Consequently, `τ = 0.20` should not be interpreted as an independently validated threshold for unseen identities or different acquisition conditions.
+
+---
+
+## Biometric Performance
+
+At the retained operating threshold:
+
+```text
+τ = 0.20
+```
+
+the reported performance is approximately:
+
+| Metric | Result |
+|---|---:|
+| FAR | 2.19% |
+| FRR | 6.31% |
+| Accuracy | 95.75% |
+| AUC | 0.9843 |
+| EER | 4.71% |
+
+ROC analysis yields:
+
+```text
+AUC:            0.9843
+EER:            4.71%
+EER threshold:  approximately 0.1697
+```
+
+The EER threshold and the selected operational threshold serve different purposes.
+
+The EER threshold identifies the operating point at which FAR and FRR are approximately equal.
+
+The operational threshold:
+
+```text
+τ = 0.20
+```
+
+was selected from the four explicitly evaluated operating points because it produced the highest observed authentication accuracy while providing a lower FAR than `τ = 0.15`.
+
+CT–PT and CT–CT exhibit comparable biometric performance at the reported precision.
 
 ---
 
@@ -350,26 +514,91 @@ Both CT–PT and CT–CT modes are evaluated under three benchmark concurrency c
 8 workers
 ```
 
-The thread-count parameter controls the number of **concurrent authentication workers used by the benchmark**.
+This produces six experimental configurations:
+
+```text
+CT–PT, 1 worker
+CT–PT, 4 workers
+CT–PT, 8 workers
+
+CT–CT, 1 worker
+CT–CT, 4 workers
+CT–CT, 8 workers
+```
+
+The worker-count parameter controls the number of **concurrent authentication workers used by the benchmark**.
 
 It does not configure the internal number of threads assigned to an individual CKKS operation.
 
 Therefore, the experiment evaluates application-level authentication concurrency rather than internal TenSEAL/SEAL multithreading.
 
+Each experimental configuration processes:
+
+```text
+11,124 authentication trials
+```
+
 ---
 
 ## Homomorphic Matching Performance
 
-For the single-worker configuration, the measured mean homomorphic evaluation latency is approximately:
+For the single-worker configuration, the measured mean homomorphic-evaluation latency is approximately:
 
 | Matching mode | Mean HE latency |
 |---|---:|
 | CT–PT | 26.35 ms |
 | CT–CT | 37.31 ms |
 
-CT–CT therefore introduces additional homomorphic processing overhead because both operands are encrypted.
+The increase from CT–PT to CT–CT is approximately:
 
-The two modes nevertheless preserve essentially the same authentication workflow and blockchain governance procedure.
+```text
+41.6%
+```
+
+at the homomorphic-processing stage.
+
+This additional cost results from encrypting and processing both matching operands rather than evaluating an encrypted enrolled reference against a plaintext query.
+
+The two modes otherwise use the same biometric and blockchain-governance workflow.
+
+---
+
+## Post-Embedding Authentication Latency
+
+Latency values reported after facial feature extraction are referred to as:
+
+```text
+post-embedding authentication latency
+```
+
+rather than full end-to-end facial-authentication latency.
+
+This distinction is important because ArcFace feature extraction is measured separately.
+
+For the single-worker configurations:
+
+| Mode | Mean post-embedding latency |
+|---|---:|
+| CT–PT | 112.02 ms |
+| CT–CT | 125.47 ms |
+
+CT–CT therefore introduces an increase of approximately:
+
+```text
+12%
+```
+
+in post-embedding authentication latency.
+
+Although the homomorphic-processing stage increases by approximately 41.6%, the increase in the complete post-embedding authentication stage is smaller because blockchain-governance operations account for a substantial part of the processing time.
+
+ArcFace feature extraction requires approximately:
+
+```text
+220 ms
+```
+
+on average and is measured separately.
 
 ---
 
@@ -379,8 +608,8 @@ Blockchain latency is measured separately from homomorphic computation.
 
 Each authentication attempt contains two governance transactions:
 
-1. authentication request registration;
-2. final decision recording.
+1. authentication-request registration through `requestAuth()`;
+2. final decision recording through `decide()`.
 
 The resulting mean governance latency is:
 
@@ -395,57 +624,147 @@ The resulting mean governance latency is:
 
 The governance overhead remains relatively stable across matching modes and worker configurations.
 
-This indicates that blockchain cost is largely independent of whether CT–PT or CT–CT homomorphic matching is selected.
+Blockchain governance therefore contributes approximately:
 
-The blockchain latency represents the cost of:
+```text
+82 ms per authentication attempt
+```
 
-- request traceability;
-- auditability;
+in the local experimental deployment.
+
+The measured governance overhead provides functionality independent of biometric similarity computation, including:
+
+- authentication-request traceability;
 - tamper-evident decision recording;
-- governance metadata management.
-
-It is not part of the biometric similarity computation itself.
+- identity-state management;
+- key-version tracking;
+- auditability.
 
 ---
 
-## Latency Terminology
+## Interpretation of Blockchain Latency
 
-Latency values reported after feature extraction are referred to as:
+The blockchain-governance procedure is identical for CT–PT and CT–CT.
+
+Both modes invoke the same:
 
 ```text
-post-embedding authentication latency
+requestAuth()
+decide()
 ```
 
-rather than full end-to-end facial authentication latency.
+smart-contract operations.
 
-This distinction is important because ArcFace feature extraction is measured separately and is not included in the post-embedding latency values.
+The small observed differences between CT–PT and CT–CT blockchain latencies should therefore not be interpreted as an intrinsic blockchain cost of ciphertext–ciphertext matching.
 
-For the single-worker configurations, the mean post-embedding authentication latency is approximately:
+They are attributed to normal runtime variability in:
 
-| Mode | Mean post-embedding latency |
-|---|---:|
-| CT–PT | 112.02 ms |
-| CT–CT | 125.47 ms |
+- local transaction execution;
+- Python processing;
+- operating-system scheduling;
+- the experimental blockchain environment.
+
+---
+
+## Experimental Blockchain Environment
+
+The blockchain evaluation is performed using a local Ethereum-compatible Hardhat deployment.
+
+The reported governance latency therefore characterizes execution under controlled experimental conditions.
+
+The measurements do **not** include:
+
+- network propagation between geographically distributed nodes;
+- distributed validator coordination;
+- production blockchain congestion;
+- multi-validator consensus latency;
+- geographically distributed network delays.
+
+The blockchain results should therefore not be directly extrapolated to a decentralized production deployment.
 
 ---
 
 ## Security Interpretation
 
-The two matching modes provide different privacy/performance trade-offs.
+The two matching modes provide different privacy–performance trade-offs.
 
 ### CT–PT
 
-CT–PT protects the enrolled biometric database while providing lower homomorphic computation latency.
+CT–PT protects the enrolled biometric reference through CKKS encryption while providing lower homomorphic-computation latency.
 
-However, the query embedding remains available in plaintext during the matching stage.
+However, the query embedding remains available in plaintext to the matching environment.
+
+An adversary capable of observing the matching process may therefore obtain the query representation.
 
 ### CT–CT
 
-CT–CT encrypts both the enrolled template and the authentication query.
+CT–CT encrypts both the enrolled biometric reference and the authentication query before similarity evaluation.
 
-It therefore provides stronger query confidentiality but requires additional ciphertext processing.
+The matching engine can therefore perform the similarity computation without requiring access to either plaintext operand.
 
-The blockchain governance procedure remains the same in both modes.
+This provides additional query confidentiality against an adversary observing the homomorphic evaluation process, provided that the corresponding CKKS secret key remains inaccessible.
+
+CT–CT requires additional ciphertext processing and therefore introduces additional computation compared with CT–PT.
+
+### Secret-Key Assumption
+
+The confidentiality properties of both CT–PT and CT–CT depend on the secrecy of the CKKS decryption key.
+
+The proposed architecture models secret-key separation through a logical KLM boundary.
+
+However, the current experimental implementation serializes a CKKS context containing the secret key.
+
+Consequently:
+
+> The current prototype demonstrates the intended architectural separation and the privacy–performance trade-off between CT–PT and CT–CT, but it does not provide production-grade independent secret-key isolation.
+
+A production deployment should isolate secret-key operations through mechanisms such as:
+
+- Hardware Security Modules (HSMs);
+- Trusted Execution Environments (TEEs);
+- dedicated key-management services;
+- distributed or threshold-key custody.
+
+---
+
+## ISO/IEC 24745 Alignment
+
+The security analysis considers biometric-information protection objectives described in ISO/IEC 24745, including:
+
+- confidentiality;
+- irreversibility;
+- unlinkability;
+- renewability.
+
+The study does **not** claim formal compliance with ISO/IEC 24745.
+
+Instead, the implemented protection mechanisms are discussed in relation to the biometric protection objectives defined by the standard.
+
+### Confidentiality
+
+The enrolled biometric reference remains encrypted during homomorphic matching in both CT–PT and CT–CT.
+
+CT–CT additionally encrypts the authentication query.
+
+### Irreversibility
+
+Protected biometric references are retained as CKKS ciphertexts rather than plaintext embeddings.
+
+Recovering the underlying protected representation without the required secret-key material relies on the security assumptions of the CKKS scheme.
+
+### Unlinkability
+
+CKKS encryption is probabilistic, meaning that independent encryptions of the same embedding can produce different ciphertext representations.
+
+However, persistent governance identifiers are intentionally retained for auditability.
+
+The current prototype should therefore not be interpreted as providing complete cross-context unlinkability.
+
+### Renewability
+
+The blockchain records logical key-version metadata that could support future cryptographic-context renewal and template migration.
+
+However, operational key rotation and automatic template re-encryption are not implemented in the current prototype.
 
 ---
 
@@ -456,14 +775,152 @@ The experimental protocol is designed to ensure that CT–PT and CT–CT are com
 The following elements remain fixed across configurations:
 
 - filtered LFW dataset;
-- enrollment references;
+- deterministic enrollment references;
+- authentication query set;
 - genuine trial definitions;
 - impostor trial definitions;
-- authentication threshold;
 - CKKS parameters;
-- blockchain governance workflow.
+- ArcFace representation;
+- operational threshold;
+- blockchain-governance workflow.
 
-Only the homomorphic matching mode and benchmark concurrency configuration are varied.
+The experimental variables are:
+
+```text
+Matching mode:
+    CT–PT
+    CT–CT
+
+Application-level concurrency:
+    1 worker
+    4 workers
+    8 workers
+```
+
+This design enables a controlled comparison of the computational behavior of the two homomorphic matching configurations.
+
+---
+
+## Main Experimental Scripts
+
+The principal scripts associated with the current evaluation include:
+
+```text
+src/bench_no_ipfs.py
+src/roc_eer_noipfs.py
+src/plot_threshold_selection.py
+```
+
+These scripts support:
+
+- CT–PT evaluation;
+- CT–CT evaluation;
+- latency analysis;
+- threshold operating-point analysis;
+- ROC generation;
+- AUC computation;
+- EER computation.
+
+Additional utility and legacy development scripts may also remain in the repository.
+
+---
+
+## Experimental Results
+
+Experimental outputs are stored under:
+
+```text
+results/
+```
+
+Relevant directories may include:
+
+```text
+results/raw/
+results/processed/
+results/figures/
+```
+
+Generated experimental outputs include:
+
+- raw authentication measurements;
+- CT–PT results;
+- CT–CT results;
+- blockchain-governance measurements;
+- threshold-analysis results;
+- ROC curves;
+- processed summaries;
+- manuscript figures.
+
+Representative figures include:
+
+```text
+results/figures/roc_ctpt_ctct.pdf
+results/figures/roc_ctpt_ctct.png
+results/figures/threshold_selection_final.pdf
+results/figures/threshold_selection_final.png
+```
+
+---
+
+## Privacy–Performance Trade-off
+
+The experimental results indicate that CT–PT and CT–CT should be interpreted as complementary operating modes rather than as competing alternatives.
+
+### CT–PT Advantages
+
+- encrypted enrolled biometric reference;
+- lower homomorphic-processing latency;
+- lower post-embedding authentication latency.
+
+### CT–PT Limitation
+
+- authentication query remains available in plaintext to the matching environment.
+
+### CT–CT Advantages
+
+- encrypted enrolled biometric reference;
+- encrypted authentication query;
+- additional query confidentiality during matching.
+
+### CT–CT Limitation
+
+- greater homomorphic-processing cost.
+
+For the single-worker configuration:
+
+```text
+CT–PT HE latency: 26.35 ms
+CT–CT HE latency: 37.31 ms
+```
+
+which corresponds to approximately:
+
+```text
+41.6% additional homomorphic-processing latency
+```
+
+for CT–CT.
+
+However, the post-embedding authentication latency increases from:
+
+```text
+112.02 ms
+```
+
+to:
+
+```text
+125.47 ms
+```
+
+which corresponds to approximately:
+
+```text
+12% additional post-embedding latency
+```
+
+This illustrates the distinction between the cost of homomorphic computation itself and the cost of the complete post-embedding authentication workflow.
 
 ---
 
@@ -473,61 +930,174 @@ The current repository represents a research prototype.
 
 Important limitations include:
 
-- blockchain evaluation is performed in an experimental deployment rather than a geographically distributed production network;
+- blockchain evaluation is performed using a local single-node Hardhat deployment;
+- distributed consensus is not evaluated;
+- network propagation is not included in the reported blockchain latency;
+- geographically distributed validator coordination is not evaluated;
 - the KLM is modeled as a logical trust boundary;
-- hardware-backed secret-key isolation is not implemented;
-- automated production-grade key rotation is not implemented;
-- key-version metadata is supported architecturally, but complete key-rotation workflows remain future work;
-- the impostor protocol uses one impostor comparison per query rather than exhaustive comparison against all enrolled identities.
+- the experimental CKKS context is serialized with the secret key included;
+- independent secret-key isolation is not implemented;
+- hardware-backed key protection is not implemented;
+- automated production-grade CKKS key rotation is not implemented;
+- `keyVersion` is currently fixed to `1`;
+- automated template migration is not implemented;
+- automated template re-encryption is not implemented;
+- governance transactions use an unlocked local development account;
+- production-grade blockchain transaction signing is not implemented;
+- the impostor protocol uses one impostor comparison per query rather than exhaustive comparison against all enrolled identities;
+- the threshold is selected from the same experimental score distribution used for biometric evaluation;
+- no independent threshold-calibration split is used;
+- the evaluation uses a filtered LFW subset rather than the official LFW verification protocol;
+- larger-scale biometric datasets remain to be evaluated;
+- geographically distributed deployments remain future work.
 
 These limitations should be considered when interpreting the experimental results.
 
 ---
 
-## Legacy IPFS Components
-
-Earlier versions of this research investigated IPFS-based storage for encrypted biometric templates.
-
-IPFS is **not part of the experimental architecture evaluated in the current manuscript**.
-
-Legacy IPFS-related scripts may remain in the repository for research history and reproducibility of previous experiments, but they should not be interpreted as components of the current CT–PT/CT–CT evaluation.
-
-Where possible, legacy components should be moved to a dedicated directory such as:
-
-```text
-legacy/ipfs/
-```
-
-or:
-
-```text
-archive/ipfs/
-```
-
-to avoid confusion with the current implementation.
 
 ---
 
-## Research Objective
+## Research Contributions
 
-The current study investigates whether blockchain-governed facial authentication can retain practical biometric and computational performance while protecting facial templates through homomorphic encryption.
+The current study investigates whether blockchain-governed facial authentication can provide traceable authentication while protecting facial representations through homomorphic encryption.
 
-The primary contributions evaluated by this repository are:
+The principal contributions evaluated by this repository are:
 
-1. comparison of CT–PT and CT–CT homomorphic facial matching;
-2. measurement of the security-performance trade-off between the two modes;
-3. integration of blockchain-based enrollment and authentication governance;
-4. decomposition of homomorphic, governance, and post-embedding authentication latency;
-5. evaluation of biometric performance using FAR, FRR, accuracy, ROC, EER, and AUC.
+1. a unified blockchain-governed facial-authentication architecture supporting both CT–PT and CT–CT homomorphic matching;
+2. a controlled comparison of CT–PT and CT–CT under identical biometric, cryptographic, and governance conditions;
+3. a reproducible LFW-based protocol containing 5,985 images from 423 identities;
+4. 5,562 genuine and 5,562 impostor trials, resulting in 11,124 authentication attempts per experimental configuration;
+5. biometric evaluation using FAR, FRR, accuracy, ROC, AUC, and EER;
+6. threshold operating-point analysis at `τ = 0.15`, `0.20`, `0.25`, and `0.30`;
+7. latency decomposition separating homomorphic computation from blockchain-governance overhead;
+8. evaluation under application-level concurrency settings of 1, 4, and 8 workers;
+9. explicit analysis of the privacy–performance trade-off between CT–PT and CT–CT;
+10. security analysis distinguishing the intended logical KLM architecture from the limitations of the experimental key-management implementation.
+
+---
+
+## Data Availability
+
+The source code and experimental results supporting the study are publicly available through this repository.
+
+The LFW dataset itself is **not redistributed** in this repository.
+
+The dataset should be obtained from its original source or through the corresponding scikit-learn dataset interface.
+
+The configuration used in this study is:
+
+```python
+fetch_lfw_people(
+    min_faces_per_person=5,
+    resize=0.5
+)
+```
+
+To reproduce the reported experimental protocol, the same procedures should be used for:
+
+- dataset filtering;
+- deterministic enrollment-reference selection;
+- genuine trial generation;
+- impostor trial generation;
+- ArcFace feature extraction;
+- CKKS configuration;
+- threshold operating-point analysis;
+- CT–PT matching;
+- CT–CT matching;
+- blockchain-governance operations.
+
+---
+
+## Security Notice
+
+This repository contains experimental research software and should not be deployed directly as a production biometric-authentication system.
+
+CKKS contexts generated using:
+
+```python
+save_secret_key=True
+```
+
+contain secret cryptographic material.
+
+Such experimental artifacts must not be treated as public-only cryptographic contexts.
+
+Do not commit or distribute:
+
+- production CKKS secret keys;
+- real blockchain private keys;
+- passwords;
+- access tokens;
+- credentials;
+- sensitive biometric information.
+
+A production-oriented implementation should use independent key custody, protected key storage, controlled decryption, and secure blockchain transaction signing.
+
+---
+
+## Publication
+
+This repository accompanies the manuscript:
+
+> **Privacy–Performance Trade-offs in Homomorphic Facial Authentication: CT–PT and CT–CT Matching with Blockchain Governance**
+
+Authors:
+
+- **Chaimaa MOUAD**
+
+
+Ibn Tofail University.
+
+The manuscript has been prepared for submission to the **Journal of Cybersecurity and Privacy**.
+
+The repository may be updated following editorial or peer-review revisions.
+
+For exact reproducibility of published results, the repository version or commit corresponding to the final publication should be used.
 
 ---
 
 ## Citation
 
-If you use this repository or its experimental results in academic work, please cite the associated study using the metadata provided in:
+If you use this repository, implementation, experimental protocol, or results in academic work, please cite the associated study.
+
+Citation metadata is provided in:
 
 ```text
 CITATION.cff
 ```
 
-The repository should be cited together with the version or commit corresponding to the published experimental results.
+The citation information should be updated with the final publication details and DOI once available.
+
+---
+
+## License
+
+Please refer to the:
+
+```text
+LICENSE
+```
+
+file for the terms governing use of the source code and associated material.
+
+---
+
+## Contact
+
+**Chaimaa MOUAD**  
+Ibn Tofail University  
+
+Email:
+
+```text
+chaimaa.mouad@uit.ac.ma
+```
+
+---
+
+## Disclaimer
+
+This repository contains an experimental research prototype developed for evaluating privacy-preserving facial authentication using CKKS homomorphic encryption and blockchain-based governance.
+
+It is not intended to serve directly as a production biometric-authentication, blockchain, or cryptographic key-management system without additional security engineering, independent secret-key isolation, deployment hardening, and validation.
