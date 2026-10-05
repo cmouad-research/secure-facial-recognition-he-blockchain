@@ -1,0 +1,24 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Hardhat / Node
+control-plane/node_modules/
+control-plane/artifacts/
+control-plane/cache/
+
+# Local / legacy experiment outputs
+results/orl_final/
+
+# Backup files
+*.bak
+
+# Secrets / cryptographic material
+results/keys/
+*.ctx
+.env
+*.key
+*.pem
